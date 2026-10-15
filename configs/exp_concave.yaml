@@ -7,7 +7,7 @@ _base_: base.yaml
 
 data:
   dataset: xjtu_sy
-  root: D:/SteamLibrary/steamapps/common/Big Pharma/XJTU-SY_Bearing_Datasets  # ⚠️ 改为实际路径
+  root: D:/1毕业论文文献，方法/XJTU-SY_Bearing_Datasets/Data/XJTU-SY_Bearing_Datasets.part06/XJTU-SY_Bearing_Datasets
   
   label:
     strategy: exp_concave
