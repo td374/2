@@ -1,0 +1,39 @@
+{
+  "comparison": "linear_vs_exp_concave",
+  "model": "se_resnet_bigru",
+  "dataset": "xjtu_sy",
+  "protocol": "single",
+  "linear": {
+    "cond1": {
+      "rmse": 5.4438,
+      "mae": 4.9253
+    },
+    "cond2": {
+      "rmse": 57.9705,
+      "mae": 46.9733
+    },
+    "cond3": {
+      "rmse": 32.867,
+      "mae": 27.9596
+    }
+  },
+  "exp_concave": {
+    "cond1": {
+      "rmse": 3.9305,
+      "mae": 3.7689
+    },
+    "cond2": {
+      "rmse": 96.7225,
+      "mae": 74.4406
+    },
+    "cond3": {
+      "rmse": 19.8161,
+      "mae": 15.9625
+    }
+  },
+  "linear_mean_rmse": 32.0938,
+  "exp_concave_mean_rmse": 40.1563,
+  "delta_mean": 8.0626,
+  "delta_pct": 25.12,
+  "note": "mixed/condition-dependent: exp_concave better on cond1/cond3, worse on cond2"
+}

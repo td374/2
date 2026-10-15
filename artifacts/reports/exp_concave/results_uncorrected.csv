@@ -1,0 +1,4 @@
+﻿dataset,model,protocol,scaling_factor,rmse,mae,nrmse,phm_legacy,phm_official,picp,mpiw,crps
+cond1,se_resnet_bigru,single,1.0,3.9305,3.7689,40.126,0.8291,0.0028,1.0,17.1382,2.3362
+cond2,se_resnet_bigru,single,1.0,96.7225,74.4406,35.4091,0.898,0.0812,0.6006,132.0775,58.2531
+cond3,se_resnet_bigru,single,1.0,19.8161,15.9625,33.9453,0.9028,0.1287,0.6265,33.1884,12.1739

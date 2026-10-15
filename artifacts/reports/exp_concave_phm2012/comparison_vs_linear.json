@@ -1,0 +1,36 @@
+{
+  "comparison": "linear_vs_exp_concave_both_datasets",
+  "model": "se_resnet_bigru",
+  "xjtu_sy": {
+    "unit": "min",
+    "linear": {
+      "cond1": 5.44,
+      "cond2": 57.97,
+      "cond3": 32.87
+    },
+    "exp_concave": {
+      "cond1": 3.93,
+      "cond2": 96.72,
+      "cond3": 19.82
+    },
+    "linear_mean": 32.09,
+    "exp_concave_mean": 40.16,
+    "delta_pct": 25.12,
+    "note": "mixed/condition-dependent"
+  },
+  "phm2012": {
+    "unit": "s",
+    "linear": {
+      "cond1": 6666.39,
+      "cond2": 958.99
+    },
+    "exp_concave": {
+      "cond1": 6637.73,
+      "cond2": 943.99
+    },
+    "linear_mean": 3812.69,
+    "exp_concave_mean": 3790.86,
+    "delta_pct": -0.57,
+    "note": "comparable (label-robust)"
+  }
+}

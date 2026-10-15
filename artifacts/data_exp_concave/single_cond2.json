@@ -1,0 +1,44 @@
+{
+  "name": "cond2",
+  "feature_dim": 140,
+  "window_len": 32,
+  "stride": 1,
+  "meta": {
+    "protocol": "single",
+    "condition": 2,
+    "dataset": "xjtu_sy",
+    "groups": {
+      "train": [
+        "2_1",
+        "2_2",
+        "2_3"
+      ],
+      "val": [
+        "2_4"
+      ],
+      "test": [
+        "2_5"
+      ]
+    },
+    "lifetimes": {
+      "2_1": 491.0,
+      "2_2": 161.0,
+      "2_3": 533.0,
+      "2_4": 42.0,
+      "2_5": 339.0
+    },
+    "n_snapshots": {
+      "2_1": 491,
+      "2_2": 161,
+      "2_3": 533,
+      "2_4": 42,
+      "2_5": 339
+    },
+    "n_windows": {
+      "train": 1092,
+      "val": 11,
+      "test": 308
+    },
+    "time_unit": "min"
+  }
+}

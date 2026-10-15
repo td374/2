@@ -168,6 +168,7 @@ def _windows_for_bearing(
         n_snapshots,
         strategy=cfg.get_path("data.label.strategy", "piecewise"),
         healthy_ratio=float(cfg.get_path("data.label.healthy_ratio", 0.8)),
+        alpha=float(cfg.get_path("data.label.alpha", 2.0)),
     )
     part = make_windows(features_sel, labels["ratio"], window_len=window_len, stride=stride)
     part["bearing_id"] = np.full(part["ratio"].shape[0], bearing_id, dtype=np.int32)

@@ -1,0 +1,78 @@
+[
+  {
+    "file": "artifacts\\data_exp_concave_phm2012\\single_cond1.npz",
+    "name": "cond1",
+    "dataset": "phm2012",
+    "protocol": "single",
+    "feature_dim": 140,
+    "time_unit": "s",
+    "n_windows": {
+      "train": 7353,
+      "val": 2432,
+      "test": 4645
+    },
+    "groups": {
+      "train": [
+        "1_1",
+        "1_2",
+        "1_3",
+        "1_4"
+      ],
+      "val": [
+        "1_5"
+      ],
+      "test": [
+        "1_6",
+        "1_7"
+      ]
+    },
+    "lifetimes": {
+      "1_1": 28030.0,
+      "1_2": 8710.0,
+      "1_3": 23750.0,
+      "1_4": 14280.0,
+      "1_5": 24630.0,
+      "1_6": 24480.0,
+      "1_7": 22590.0
+    },
+    "fingerprint": "12240159b9"
+  },
+  {
+    "file": "artifacts\\data_exp_concave_phm2012\\single_cond2.npz",
+    "name": "cond2",
+    "dataset": "phm2012",
+    "protocol": "single",
+    "feature_dim": 140,
+    "time_unit": "s",
+    "n_windows": {
+      "train": 4290,
+      "val": 2280,
+      "test": 869
+    },
+    "groups": {
+      "train": [
+        "2_1",
+        "2_2",
+        "2_3",
+        "2_4"
+      ],
+      "val": [
+        "2_5"
+      ],
+      "test": [
+        "2_6",
+        "2_7"
+      ]
+    },
+    "lifetimes": {
+      "2_1": 9110.0,
+      "2_2": 7970.0,
+      "2_3": 19550.0,
+      "2_4": 7510.0,
+      "2_5": 23110.0,
+      "2_6": 7010.0,
+      "2_7": 2300.0
+    },
+    "fingerprint": "0d4d638809"
+  }
+]

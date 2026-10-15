@@ -1,28 +1,64 @@
 # Exp-Concave label configuration for IEEE PHM 2012 (PRONOSTIA)
 # External validation of accelerated degradation hypothesis
+#
+# NOTE: all non-label settings are kept IDENTICAL to the linear-label
+# single-condition PHM2012 runs (see xjtu_sy_rul/artifacts/phm2012/reports/
+# single_linear/se_resnet_bigru/resolved_config.yaml) so that the only
+# experimental variable is the label strategy.
+
+paths:
+  data_dir: artifacts/data_exp_concave_phm2012
+  report_dir: artifacts/reports/exp_concave_phm2012
 
 data:
   dataset: phm2012
   root: C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/datasets/PHM2012
-  
+  sample_rate: 25600.0
+  window_len: 32
+  stride: 1
+  use_cache: false
+  denoise:
+    enable: true
+    wavelet: db4
+    level: 3
+    mode: soft
+  fft:
+    bins: 64
+    bin_start: 0
+    log_scale: false
+  multi_domain:
+    source: horizontal
+  mrmr:
+    enable: true
+    k: 12
+    n_bins: 10
   label:
     strategy: exp_concave
     alpha: 2.0
-  
-  features:
-    use_wavelet_denoise: true
-    wavelet: db4
-    level: 3
-    mrmr_k: 12
-  
-  window:
-    length: 32
-    stride: 1
 
-paths:
-  data_dir: artifacts/data_exp_concave_phm2012
-  checkpoint_dir: artifacts/checkpoints/exp_concave_phm2012
-  report_dir: artifacts/reports/exp_concave_phm2012
+splits:
+  single:
+    train: [1, 2, 3, 4]
+    val: [5]
+    test: [6, 7]
+  cross:
+    source_train: [1, 2, 3, 4]
+    source_val: [5]
+    target_test: [1, 2, 3, 4, 5, 6, 7]
+
+prepare:
+  single: true
+  cross: false
+  conditions: [1, 2]
+
+model:
+  hidden_dim: 64
+  num_layers: 2
+  dropout: 0.2
+  se_reduction: 16
+  channel_plan: [64, 128]
+  use_se: true
+  mmd_feature: flatten
 
 runtime:
   seeds: [42, 123, 456, 789, 1011]
@@ -31,15 +67,21 @@ runtime:
 train:
   epochs: 150
   batch_size: 128
-  optimizer:
-    name: adam
+  loss: weighted_mse
+  loss_params:
+    threshold: 0.3
+    weight: 2.0
+  val_loss: mse
+  patience: 15
+  grad_clip: null
+  optim:
     lr: 0.001
+    weight_decay: 0.0
   scheduler:
-    name: reduce_lr_on_plateau
-    patience: 10
+    name: reduce_on_plateau
     factor: 0.5
-  early_stopping:
-    patience: 15
+    patience: 5
+    min_lr: 1.0e-06
 
 experiments:
   single:

@@ -29,4 +29,7 @@ desktop.ini
 # WorkBuddy内部目录
 .workbuddy/
 
+# 数据集(太大,不入库;RAR分卷+解压数据+备份共~12GB)
+datasets/
+
 # 注意: artifacts/不排除,用户要求提交全部实验产物
