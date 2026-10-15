@@ -2,9 +2,6 @@
 # Based on Kim & Lee 2024 (IET Electronics Letters)
 # Tests "slow-then-fast" accelerated degradation hypothesis
 
-# Inherit from base
-_base_: base.yaml
-
 data:
   dataset: xjtu_sy
   root: D:/1毕业论文文献，方法/XJTU-SY_Bearing_Datasets/Data/XJTU-SY_Bearing_Datasets.part06/XJTU-SY_Bearing_Datasets
