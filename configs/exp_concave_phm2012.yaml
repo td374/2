@@ -1,0 +1,19 @@
+# Exp-Concave label configuration for IEEE PHM 2012 (PRONOSTIA)
+# External validation of accelerated degradation hypothesis
+
+# Inherit from phm2012 base
+_base_: phm2012.yaml
+
+data:
+  label:
+    strategy: exp_concave
+    alpha: 2.0
+
+paths:
+  data_dir: artifacts/data_exp_concave_phm2012
+  checkpoint_dir: artifacts/checkpoints/exp_concave_phm2012
+  report_dir: artifacts/reports/exp_concave_phm2012
+
+experiments:
+  single:
+    models: [se_resnet_bigru]

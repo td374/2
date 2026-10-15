@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>中文核验版 · 决定结论的是标签，而非架构</title>
+<style>
+  :root { --fg:#1a1a1a; --muted:#666; --line:#e3e3e3; --accent:#8c1c13; --bg:#ffffff; --code:#f6f6f4; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font-family: "Times New Roman", "Songti SC", "SimSun", "Noto Serif CJK SC", serif;
+         font-size: 16px; line-height: 1.85; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 56px 28px 96px; }
+  h1 { font-size: 1.62em; line-height:1.5; margin: 0 0 .6em; letter-spacing:.2px; }
+  h2 { font-size: 1.26em; margin: 2.4em 0 .7em; padding-bottom:.32em; border-bottom:2px solid var(--line); }
+  h3 { font-size: 1.08em; margin: 1.9em 0 .55em; color:#222; }
+  h4 { font-size: 1.0em; margin: 1.6em 0 .5em; color:#333; }
+  p { margin: .72em 0; text-align: justify; }
+  blockquote { margin: 1em 0; padding: .7em 1.05em; background:#faf7f4; border-left:3px solid var(--accent);
+               color:#3a3a3a; font-size:.95em; }
+  code { background: var(--code); padding: .12em .38em; border-radius:4px;
+         font-family: "Cascadia Mono", Consolas, "Courier New", monospace; font-size:.86em; }
+  pre { background: var(--code); padding: 14px 16px; border-radius:8px; overflow:auto; border:1px solid var(--line); }
+  pre code { background: none; padding:0; }
+  table { border-collapse: collapse; width: 100%; margin: 1.1em 0; font-size: .90em;
+          font-family: "Times New Roman", "Songti SC", "SimSun", serif; }
+  th, td { border: 1px solid var(--line); padding: 6px 9px; text-align: left; vertical-align: top; }
+  th { background: #f3f3f1; font-weight: 600; }
+  tr:nth-child(even) td { background: #fbfbfa; }
+  em { color:#333; }
+  strong { color: #000; }
+  hr { border:0; border-top:1px solid var(--line); margin: 2.6em 0; }
+  ol, ul { padding-left: 1.5em; }
+  li { margin: .34em 0; text-align: justify; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>决定结论的是标签，而非架构：面向滚动轴承 RUL 预测的标签敏感性分析与披露感知评测协议</h1>
+<blockquote>
+<p><strong>中文核验版（manuscript_zh.md）说明.</strong> 本文件是英文定稿
+<code>paper/manuscript.md</code> 的<strong>逐节中文对照版</strong>，用于交叉核验。<strong>所有数值、表号（表 1–12）、
+图号（图 1–2）、章节编号均与英文定稿一致</strong>，未做删改；术语按项目冻结口径统一
+（<code>LI</code> = 标签结构指标；<code>G</code> = 学习增益；<code>const_one</code> 朴素常数 / <code>const_mean</code> 可部署常数 /
+最优常数仅作事后诊断）。若中文与英文表述冲突，<strong>以英文定稿为准</strong>。</p>
+</blockquote>
+<p><strong>作者：</strong> *[作者]<em>¹，</em>[导师]*¹
+¹ <em>[单位，城市，国家]</em>
+<strong>通讯作者：</strong> <em>[email]</em></p>
+<blockquote>
+<p><strong>状态说明（内部，投稿前删除）.</strong> 本文数值由 <code>scripts/12_paper_tables.py</code> 从 <code>artifacts/</code>
+下的产物生成（第 4 阶段表格由 <code>scripts/37_stage4_analysis.py</code> 生成）；图由
+<code>scripts/11_make_figures.py</code> 生成。每一张表都可由 <code>configs/</code> 加五个随机种子单独复现。
+跨工况迁移分别在第 6.6 节（单源）与第 6.7 节（双源）报告；第二个目标数据集的完整标签谱
+仍在第 7.4 节中声明为进行中的工作，未在本文报告。</p>
+</blockquote>
+<hr />
+<h2>摘要</h2>
+<p>深度剩余使用寿命（RUL）预测所报告的“性能提升”难以解释，因为这种提升可能来自<strong>标签构造</strong>
+与<strong>评测协议</strong>，而非来自网络架构。本文追问：提升究竟来自何处。我们在 XJTU-SY 与
+IEEE PHM 2012 上构建了一套受控评测框架——一个<strong>解析常数基线</strong>，其闭式比值定义了<strong>标签结构
+指标</strong>并趋于 <code>3(1−h)/4</code>；对<strong>分段标签平台段长度 <code>h</code></strong> 的扫描；<strong>组件级架构消融</strong>；以及
+<strong>配对跨工况评测</strong>。SE-ResNet-BiGRU 全程作为<strong>代表性架构</strong>与实验载体，<strong>不作为本文提出的方法</strong>。</p>
+<p>由此得到三点发现。<strong>(i) 标签。</strong> 标签结构决定了可学习区间：模型相对门槛的增益随 <code>h</code> 单调，
+并在 <code>h = 0.5</code> 与 <code>h = 0.6</code> <strong>之间变号</strong>；而在广泛使用的 <code>h = 0.8</code> 下，<strong>没有任何深度模型能超过
+最优常数</strong>——因此对固定模型的结论由标签决定。<strong>(ii) 架构。</strong> 组件级分析表明：残差特征提取、
+注意力加权与双向循环<strong>均未带来统计上可靠的增益</strong>。<strong>(iii) 迁移。</strong> 架构复杂度的提升<strong>并未</strong>转化
+为稳健的跨工况收益。</p>
+<p>这些发现提示：<strong>任务表述与评测设计应先于架构改进</strong>；为此本文提出一套<strong>十条披露规则</strong>的协议。</p>
+<p><strong>关键词：</strong> 剩余使用寿命；滚动轴承；标签策略；基准设计；评测协议；域适应；可复现性</p>
+<hr />
+<h2>1. 引言</h2>
+<p>滚动轴承的剩余使用寿命（RUL）预测是状态维修的基础，其深度学习文献增长迅速
+[Lei et al. 2018; Si et al. 2011]。在两个最常用的公开基准——XJTU-SY [Wang et al. 2020]
+与 IEEE PHM 2012 / PRONOSTIA [Nectoux et al. 2012]——上，带注意力的卷积或循环回归器如今
+几乎被认为“应当优于传统方法”。然而，其证据基础存在一个很少被审视的<strong>结构性弱点</strong>：
+<strong>标签与评测指标本身是设计选择，而它们并非无关紧要。</strong></p>
+<p>考虑最常用的标签。轴承的全寿命记录被分窗，每个窗口被赋予一个<em>归一化</em> RUL：</p>
+<pre><code>  r(i) = 1                                    if i &lt; h·N
+       = (N − i) / (N − h·N)                  otherwise,          (1)
+</code></pre>
+<p>其中 <code>N</code> 为快照数，<code>h</code> 为平台段比例（通常取 0.8）。其动机是物理性的：健康轴承的振动特征在
+初始损伤前是平稳的，因此 RUL 不应被“过早消耗”。另一个较少被言明的动机是：式 (1) 使标签的
+<strong>分布</strong>在不同工况间几乎一致，从而让分布匹配类的域适应看起来更有效。</p>
+<p>问题在于：式 (1) 与通用的<strong>窗末评分规则</strong>（每个窗口以其<strong>最后</strong>一个快照处的标签来评分）合在一起，
+使该基准几乎<strong>不具备判别力</strong>。由于 <code>1 − h = 80%</code> 的标签质量恰好等于 1.0，<strong>恒答 1.0</strong> 的预测器
+已接近最优，任何跟踪退化的模型都无法取得多少增益。这并非细微效应：我们证明（§3.3），在
+<code>h = 0.8</code> 时，一个常数即可解释朴素预测器平方误差的 85%。</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>促使本研究的阴性结果。</strong></td>
+<td>在式 (1) 取 <code>h = 0.8</code>、无泄漏且协议统一的流水线下，<strong>六个深度模型没有一个</strong>能在 XJTU-SY 的三工况均值上超过平凡常数基线；最强基线是“恒取训练标签均值”（43.4 min），而最好的深度模型为 56.2 min。</td>
+</tr>
+</tbody>
+</table>
+<p>本文将这一阴性结果<strong>当真对待</strong>，而非当作调参问题，并把问题分解为三问：</p>
+<blockquote>
+<p><strong>RQ1（评测有效性）。</strong> 一个<em>表面上的</em> RUL 提升，能否与基线难度、评测协议分离开来——即，
+它能否跨越平凡常数预测器已经设定的<strong>门槛</strong>？</p>
+<p><strong>RQ2（标签机制）。</strong> 剩余寿命标签的构造方式，如何影响“什么是可学的”，以及所学生成模型之间的排名？</p>
+<p><strong>RQ3（架构与迁移）。</strong> 架构组件是否带来可靠的增益？它们是否让预测对工况变化更稳健？</p>
+</blockquote>
+<p>三者是<strong>嵌套</strong>而非并列的：RQ1 确立一次比较是否可读，RQ2 追问标签对它做了什么，RQ3 追问架构能否
+补偿任务表述所施加的限制。</p>
+<p><strong>贡献。</strong> 我们以<strong>一套框架、一个机制、一项分析</strong>作答——而非以一个模型作答。</p>
+<ol>
+<li><strong>面向 RUL 预测的严格评测框架（§5、§3）。</strong> 一个可复现的比较协议，由四部分组成：<strong>解析常数
+门槛</strong>，使平凡基线阶梯及其闭式下界在任何模型训练前即被写明；在单一流水线与五个种子下对
+<code>h ∈ {0, 0.5, 0.6, 0.7, 0.8, 0.9}</code> 的<strong>受控标签扫描</strong>；<strong>确定性的训练与评测路径</strong>，使存储的
+检查点可复现完整重训；以及显式的<strong>统计单元</strong>（测试轴承实例），所有聚合量都在其计算。
+该框架被编码为<strong>十条可复现性与评测规则（A1–A10，§5）</strong>。</li>
+<li><strong>标签机制：剩余寿命标签的构造可决定“学习增益是否存在”（§3、§6.3）。</strong> 我们给出关于基准
+判别力的闭式理论——朴素常数与最优常数预测器都具有闭式误差，其比值定义了<strong>标签结构指标
+<code>LI(h)</code></strong>，在连续极限下恰为 <code>3(1−h)/4</code>——并从实证上表明：模型对门槛的增益<strong>随 <code>h</code> 单调，
+且在 <code>h = 0.5</code> 与 <code>h = 0.6</code> 两个网格点之间变号</strong>，这是本文的核心结论（图 2）。该变号
+<strong>并非某个模型的假象</strong>：它在四个独立训练的架构上复现，其中三个的零点落在<strong>同一区间</strong>（§6.7）。
+<strong>决定结论的是标签，而非网络。</strong> 同样的排序在 IEEE PHM 2012 上复现（§6.4）。</li>
+<li><strong>架构与迁移分析：复杂度本身并不保证可靠的提升或迁移稳健性（§6.7、§6.6）。</strong> 一项受控的
+组件级消融表明：<strong>在协议之下，没有任何单个架构组件提供统计上可靠的提升</strong>——残差提取器、
+注意力模块、双向循环三者皆然；一项配对跨工况评测表明：<strong>架构复杂度的提升并未转化为稳健的
+迁移收益</strong>。这闭合了 RQ1 打开的回路：一旦门槛与标签被控制住，剩余的性能上限由<strong>任务表述</strong>
+决定，而非由网络深度决定。</li>
+</ol>
+<p>我们<strong>有意</strong>将模型架构保持固定且平常（SE-ResNet + BiGRU，配 MK-MMD 域适应），使其充当实验的
+<strong>载体</strong>而非一项主张；它以<strong>代表性架构</strong>的身份被评测，且 §6.7 的消融是<strong>逐个变化其组件</strong>，
+而非增添新组件。</p>
+<hr />
+<h2>2. 相关工作</h2>
+<p><strong>RUL 标注。</strong> 文献分为全寿命线性标签 <code>r(i) = (N−i)/N</code> [Saxena et al. 2008] 与保留健康平台段的
+分段变体 [Wang et al. 2020; Nectoux et al. 2012] 两派。该选择通常以物理解释为由，鲜有做消融。
+我们的命题 1 把该选择的后果显式化，并使其在单一参数上单调。</p>
+<p><strong>深度 RUL 模型。</strong> CNN 与 LSTM/GRU 回归器占主导 [Zhao et al. 2019]；注意力序列模型
+[Vaswani et al. 2017; Zhou et al. 2021] 与作用于残差主干 [He et al. 2016] 的通道注意力模块
+[Hu et al. 2018] 如今已很常见。本文<strong>仅</strong>将此类模型用作载体。</p>
+<p><strong>域适应。</strong> 通过最大均值差异 [Gretton et al. 2012] 及其多核变体 [Long et al. 2015] 的无监督域
+适应，是跨工况 RUL 迁移的标准做法。我们指出该文献共有的一个<strong>报告</strong>问题：当目标域窗口（无标签）
+参与训练时，该设定是<strong>直推式（transductive）<strong>的，需要</strong>仅源域对照</strong>才能归因增益。我们的协议
+要求披露这一点（规则 A5）；本文的单工况结果是<strong>不含直推</strong>的。</p>
+<p><strong>不确定性量化。</strong> 蒙特卡洛 Dropout [Gal &amp; Ghahramani 2016] 配合高斯负对数似然
+[Nix &amp; Weigend 1994] 被广泛用于产生预测区间。我们报告其覆盖率，并发现其<strong>不足</strong>（§6.5）。</p>
+<p><strong>基准批评。</strong> 基线有时未被充分调参、指标可能偏袒某方法，这些已是共识 [Saxena et al. 2008]。
+我们补充的是：一个具有闭式的<strong>标签层面</strong>机制，以及它在真实数据集上<strong>翻转结论</strong>的证据。</p>
+<hr />
+<h2>3. 问题表述：为什么标签决定结论</h2>
+<h3>3.1 标注与窗末评分</h3>
+<p>设一个轴承的寿命包含 <code>N</code> 个快照（XJTU-SY：每分钟一个；PHM 2012：每 10 秒一个）。对每个快照
+提取特征，并以长度 <code>w</code>、步长 1 分窗，得到 <code>N − w + 1</code> 个窗口。每个窗口由其在<strong>最后</strong>一个快照处
+的索引评分：</p>
+<pre><code>  e ∈ {w−1, w, …, N−1}.                                            (2)
+</code></pre>
+<p>因此用于评分的标签是 <code>r(e)</code>，且<strong>重要的是</strong>：前 <code>w−1</code> 个快照<strong>完全不进入评测</strong>。这一有限窗效应
+对长寿命很小、对短寿命很大：在 XJTU-SY 轴承 1_5（<code>N = 52</code>，<code>w = 32</code>）上，朴素基线在精确分窗
+评分下为 20.24 min，而在教科书连续公式下为 13.43 min，相差 <strong>51%</strong>。</p>
+<h3>3.2 常数预测器族</h3>
+<p>常数预测器 <code>f(x) ≡ c</code>（其<em>比例</em>预测为 <code>c</code>，乘以轴承寿命 <code>L</code> 得到分钟数）是最强的平凡基线，
+并有闭式解。在评分索引集 (2) 上：</p>
+<pre><code>  RMSE(c) = L · sqrt( mean_e (r(e) − c)² ).                        (3)
+</code></pre>
+<p>最优常数为 <code>c* = mean_e r(e)</code>，于是</p>
+<pre><code>  RMSE_best = L · sqrt( Var_e r(e) )  = L · σ_r,                    (4)
+  RMSE_one  = L · sqrt( E_e[(r(e) − 1)²] ),                         (5)
+</code></pre>
+<p>其中 <code>RMSE_one</code> 是“恒答 1.0”的朴素基线。在连续极限（<code>N → ∞</code>、均匀采样、<code>r</code> 可达 0）下，两类
+标签给出：</p>
+<pre><code>  linear  (h = 0):   RMSE_one = L/√3 ≈ 0.577 L,  RMSE_best = L/√12 ≈ 0.289 L,   (6)
+  piecewise (h):     RMSE_one = L·√((1−h)/3),      RMSE_best = L·√((1−h)(1+3h)/12). (7)
+</code></pre>
+<p>式 (7) 包含了常被用来论证“<code>h = 0.8</code> 时模型至少要达到 …”的那个熟悉的 <code>0.258 L</code>，但请注意它是
+<em>连续极限</em>值；精确的分窗值系统性更大，对短寿命最多可达 51%（§3.1）。</p>
+<h3>3.3 标签结构指标</h3>
+<p>定义</p>
+<pre><code>  LI = 1 − (RMSE_best / RMSE_one)²  = 1 − Var_e r(e) / E_e[(r(e)−1)²].   (8)
+</code></pre>
+<p><code>LI</code> 是朴素预测器平方误差中可被<strong>更聪明的常数</strong>移除的比例；等价地，它度量标签偏离常数的程度。
+当 <code>LI → 0</code> 时标签（近乎）恒定，任何预测器（近乎）都是常数，基准无法判别。<code>LI</code> 只取决于标签
+定义与分窗方式——<strong>在训练任何模型之前即可计算</strong>。</p>
+<p><strong>命题 1.</strong> 对于分段常数标签 (1)，在连续极限下</p>
+<pre><code>  LI(h) = 3(1 − h) / 4.                                            (9)
+</code></pre>
+<p><em>推导.</em> 均匀采样给出 <code>E[r] = (1+h)/2</code>、<code>E[r²] = h + (1−h)/3</code>，故
+<code>Var[r] = h + (1−h)/3 − ((1+h)/2)² = (1−h)(1+3h)/12</code>，而 <code>E[(r−1)²] = (1−h)/3</code>。
+代入 (8) 得 <code>LI(h) = 1 − (1+3h)/4 = 3(1−h)/4</code>。∎</p>
+<p>由此立刻得到三点。(i) 在广泛使用的 <code>h = 0.8</code> 处，<strong><code>LI = 0.15</code></strong>：朴素预测器误差的 85% 已被最优
+常数移除，因此留给<em>任何</em>改进（无论模型还是其他）的至多 15%。(ii) 在 <code>h = 0.9</code> 处 <code>LI = 0.075</code>，
+基准实际已饱和。(iii) 全寿命线性标签（<code>h = 0</code>）的 <code>LI = 0.75</code>，是前者的四倍。表 1 与图 1b
+确认了 (9)，并表明精确分窗 <code>LI</code> 略大于连续值，但同样单调。</p>
+<table>
+<thead>
+<tr>
+<th>h</th>
+<th>0.0</th>
+<th>0.5</th>
+<th>0.6</th>
+<th>0.7</th>
+<th>0.8</th>
+<th>0.9</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>LI 连续值, 3(1−h)/4</td>
+<td>0.750</td>
+<td>0.375</td>
+<td>0.300</td>
+<td>0.225</td>
+<td><strong>0.150</strong></td>
+<td>0.075</td>
+</tr>
+<tr>
+<td>LI 分窗值, XJTU-SY（实测）</td>
+<td>0.897</td>
+<td>0.594</td>
+<td>0.491</td>
+<td>0.371</td>
+<td><strong>0.247</strong></td>
+<td>0.127</td>
+</tr>
+</tbody>
+</table>
+<p><em>表 1. 标签结构指标：解析值与实测值。分窗值取自存储的测试标签，连续值取自式 (9)。</em></p>
+<h3>3.4 为什么 LI 应能预测“模型–基线”落差</h3>
+<p>深度模型学习标签在给定特征下的条件均值。当标签近乎恒定（<code>LI</code> 小）时，特征几乎不携带关于“何时
+失效”的信息，于是学习到的映射<strong>趋于常数</strong>，模型无法与最优常数分离。当 <code>LI</code> 大时，标签在整段
+寿命上变化，跟踪退化便得到回报。因此 <code>LI</code> 充当一个单值<strong>筛选器</strong>，用于判断一个拟用基准是否
+具有判别力。§6.3 从实证上检验该预测，且它单调成立。</p>
+<hr />
+<h2>4. 方法</h2>
+<h3>4.1 退化保真标注（B1）</h3>
+<p>我们采用<strong>全寿命线性归一化 RUL</strong>，<code>r(i) = (N − i)/N</code>，即 <code>h = 0</code>。它在整段寿命上携带退化信息，
+而非仅在尾部；并将 <code>LI</code> 从 0.15 提升到 0.75（连续）或从 0.25 提升到 0.90（分窗，XJTU-SY）。
+我们保留分段族作为<strong>消融轴</strong>，而非默认。</p>
+<p>需强调这是一个<em>测量</em>决策，而非关于物理的断言：平台段完全可能是底层退化过程的更好模型。但
+<em>标签</em>不是物理模型——它是基准的目标，而一个在其支撑的 80% 上恒定的目标，无法度量“跟踪非恒定
+量”的能力。</p>
+<h3>4.2 载体架构</h3>
+<p>由于本文的主张关乎<strong>评测</strong>而非架构，我们全程使用单一固定模型。每个 32 快照窗口由 140 个特征
+描述：128 个 FFT 幅值（64 个频点 × 2 个加速度通道）加上由 mRMR 从 42 个候选中选出的 12 个多域
+描述子（时域、频域与包络统计）。信号用 <code>db4</code> 平稳小波变换去噪（3 层，软阈值）。回归器是带
+squeeze-and-excitation 通道注意力的残差卷积堆叠（通道 64→128，SE 压缩比 16），随后是两层双向
+GRU（隐藏 64，dropout 0.2）与线性输出头。<strong>仅在跨工况使用</strong>时，对展平表示施加 MK-MMD 惩罚以
+对齐源域与目标域的边缘分布。训练采用加权 MSE（比例低于 0.3 处权重 2.0）、Adam（lr 1e-3）、
+ReduceLROnPlateau、批大小 128、≤150 轮、早停（耐心 15），五个种子 {42, 123, 456, 789, 1011}
+在推理时集成。所有预处理统计量（逐通道缩放器、mRMR 索引集）<strong>仅在训练划分上拟合</strong>。</p>
+<h3>4.3 退化敏感评测（B2）</h3>
+<p>以分钟计的窗口级 RMSE 三工况均值，被寿命最长的工况以及每条寿命的健康段所主导，因此是衡量
+“退化跟踪”的差指标。故我们同时报告：</p>
+<ul>
+<li>逐工况 RMSE（<strong>绝不</strong>只报均值）——披露规则 A3；</li>
+<li>范围归一化 RMSE（NRMSE）；</li>
+<li>IEEE PHM 2012 非对称评分，包含<em>传统</em>（相对误差为分数）与<em>官方</em>（相对误差为百分数）两种
+形式——规则 A4；</li>
+<li>窗口级 RMSE 作为一个显式的<em>对比</em>列，使新指标无法悄然取代旧指标。</li>
+</ul>
+<h3>4.4 平凡基线阶梯及其解析下界（B3）</h3>
+<p>每张表都包含完整阶梯——常数(零) ≤ 常数(均值) ≤ 常数(一) ≤ 岭回归 ≤ 末值——以及式 (4) 的
+<code>RMSE_best</code>，即<strong>最优常数</strong>，它是<em>任何</em>常数预测器的下界，且对因果预测器<strong>不可得</strong>（它用到
+测试标签均值）。与之比较是可获得的最严格的诚实检验。</p>
+<p>正是在这里，标签与披露要求变得不可分割。表 2 给出两类标签下 XJTU-SY 的阶梯：</p>
+<table>
+<thead>
+<tr>
+<th>标签</th>
+<th>常数(一)</th>
+<th>最优常数</th>
+<th>实测常数(均值)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>分段, h = 0.8</td>
+<td>48.24</td>
+<td>43.02</td>
+<td>43.44</td>
+</tr>
+<tr>
+<td>线性 (h = 0)</td>
+<td><strong>107.38</strong></td>
+<td><strong>39.64</strong></td>
+<td>42.73</td>
+</tr>
+</tbody>
+</table>
+<p><em>表 2. 三工况均值下的平凡基线（RMSE, min）。</em></p>
+<p>切换到线性标签后，<strong>朴素</strong>基线从 48.2 崩塌到 107.4 min，而<strong>门槛</strong>几乎不动，43.0 → 39.6 min。
+因此，一项只报告朴素基线的研究，会把一次严苛的比较变成一次轻松的胜利——这正是披露协议存在
+所要防止的失效模式。反过来，一项保留分段标签、只报告 RMSE 的研究，会报告一个<em>无法</em>超过常数的
+模型。这两种错误只有靠同时报告<strong>完整阶梯</strong>与<strong>标签定义</strong>才能避免。</p>
+<hr />
+<h2>5. 评测协议：十条披露规则</h2>
+<p>我们提出以下各项作为 RUL 基准报告的标准要求。它们不是新指标，而是关于<strong>呈现方式</strong>的约束，
+且代价很低。</p>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>要求</th>
+<th>所防止的失效模式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A1</strong></td>
+<td>每张主表列出<strong>完整</strong>的平凡基线阶梯，包含最强基线。</td>
+<td>挑选弱基线。</td>
+</tr>
+<tr>
+<td><strong>A2</strong></td>
+<td>在实测基线之外，报告<strong>解析最优常数界</strong>。</td>
+<td>与设定错误或欠训练的常数比较。</td>
+</tr>
+<tr>
+<td><strong>A3</strong></td>
+<td>报告<strong>逐工况</strong>结果，绝不单报均值；跨工况结果单独成表。</td>
+<td>长寿命工况主导均值（见 §6.2）。</td>
+</tr>
+<tr>
+<td><strong>A4</strong></td>
+<td><strong>同时</strong>报告两种评分定义（PHM 传统/官方、相对/绝对误差）并注明单位。</td>
+<td>挑选更好看的评分。</td>
+</tr>
+<tr>
+<td><strong>A5</strong></td>
+<td>只要目标数据参与训练，就披露<strong>直推式</strong>设定并提供仅源域对照；报告缩放诊断分布；并说明哪些模型实际带有适应头。</td>
+<td>把“迁移”增益归因于适应，而它其实来自见过目标数据——或来自根本没有适应模块的模型（§6.6）。</td>
+</tr>
+<tr>
+<td><strong>A6</strong></td>
+<td>报告<strong>标签定义及其敏感性</strong>（<code>h</code> 扫描和/或策略），即模型–基线落差随标签的变化。</td>
+<td>结论只对某个未言明的标注选择成立。</td>
+</tr>
+<tr>
+<td><strong>A7</strong></td>
+<td>报告流水线的<strong>逐次运行离散度</strong>（相同配置、重复运行），且不声称任何小于该离散度的差异。</td>
+<td>把 GPU 非确定性读作结果；过度精确的变号点（§6.6）。</td>
+</tr>
+<tr>
+<td><strong>A8</strong></td>
+<td>报告每次比较的<strong>测试总体构成</strong>；当两协议评分不同轴承/窗口总体时，并列报告配对子集。</td>
+<td>在不同总体上聚合，并把落差读作效应（约 27× 的假象，§6.6）。</td>
+</tr>
+<tr>
+<td><strong>A9</strong></td>
+<td>跨协议比较必须使用<strong>共同的、未校正</strong>的指标；任何臂专属校正仅保留为协议内敏感性。</td>
+<td>臂专属重缩放人为制造出一致的退化（§6.6）。</td>
+</tr>
+<tr>
+<td><strong>A10</strong></td>
+<td><strong>为评测路径播种。</strong> 当预测采样了随机性（如蒙特卡洛 Dropout）时，检查点的重评测只有在能复现完整流水线时才可报告。</td>
+<td>把未播种的推理路径误认作真实差异，并“重新推导”出与重训不符的数值（§6.6）。</td>
+</tr>
+</tbody>
+</table>
+<p>该协议是分析的直接产物：由于 <code>LI</code>（式 8）是一个控制判别力的、<strong>仅依赖标签</strong>的量，标签就必须被
+当作<strong>实验因子</strong>。这把一个习惯性的预处理选择重新定位为<strong>结果的一部分</strong>。A7–A10 每一条都是
+在<strong>跑完它所约束的那个实验之后</strong>才加入的——这本身就是要点：这些规则本应由研究者自己的结果
+<strong>发现</strong>并<strong>应用</strong>（见 §6.6）。</p>
+<hr />
+<h2>6. 结果</h2>
+<h3>6.1 动机：分段标签掩盖了模型（S2）</h3>
+<p>在式 (1) 取 <code>h = 0.8</code>、无泄漏流水线且所有模型协议一致的情况下，<strong>没有任何深度模型</strong>能在
+XJTU-SY 的三工况均值上超过平凡基线（表 3）。最好的深度模型（LSTM）为 56.2 min，SE-ResNet-BiGRU
+为 77.2 min；最优常数门槛为 43.0 min，实测“常数(均值)”基线为 43.4 min。只有寿命较短的工况 1
+被深度模型赢得。之所以在这<strong>单一</strong>平台长度上评测全部六个深度模型，恰恰因为该主张是一个阴性结论。</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>cond1</th>
+<th>cond2</th>
+<th>cond3</th>
+<th>均值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SE-ResNet-BiGRU</td>
+<td>8.38</td>
+<td>140.78</td>
+<td>82.31</td>
+<td>77.15</td>
+</tr>
+<tr>
+<td>LSTM</td>
+<td>14.67</td>
+<td>85.46</td>
+<td>68.39</td>
+<td>56.18</td>
+</tr>
+<tr>
+<td>BiGRU</td>
+<td>11.32</td>
+<td>95.64</td>
+<td>78.71</td>
+<td>61.89</td>
+</tr>
+<tr>
+<td>Informer-SE</td>
+<td>11.94</td>
+<td>102.87</td>
+<td>96.23</td>
+<td>70.35</td>
+</tr>
+<tr>
+<td>GRU</td>
+<td>9.12</td>
+<td>124.05</td>
+<td>80.85</td>
+<td>71.34</td>
+</tr>
+<tr>
+<td>CNN</td>
+<td>13.32</td>
+<td>111.63</td>
+<td>101.31</td>
+<td>75.42</td>
+</tr>
+<tr>
+<td>常数(均值)</td>
+<td>17.07</td>
+<td>83.14</td>
+<td>30.12</td>
+<td>43.44</td>
+</tr>
+<tr>
+<td><em>最优常数(门槛)</em></td>
+<td><em>16.01</em></td>
+<td><em>83.14</em></td>
+<td><em>29.92</em></td>
+<td><em>43.02</em></td>
+</tr>
+</tbody>
+</table>
+<p><em>表 3. XJTU-SY，分段标签 h = 0.8（RMSE, min）；完整六模型深度阵容加最强平凡基线。深度模型按
+均值排序（最好者在前）；自动生成的 <code>paper/tables/tables.md</code> 为记录来源。</em></p>
+<p>这复现了与文献相近的观察 [Wang et al. 2020]，但<strong>关键</strong>的是，它也被 <code>LI = 0.15</code>（表 1）所<em>预测</em>：
+一个 85% 的误差可由常数解释的基准，无法区分模型。</p>
+<h3>6.2 退化保真标签下的主要结果（S2L）</h3>
+<p>用线性标签（<code>h = 0</code>）重跑同一流水线，结论发生改变。表 4 报告全部九个模型。<strong>六个深度模型中有
+四个在三工况均值上超过了最优常数门槛</strong>，SE-ResNet-BiGRU 超过它 2.1 min（37.51 vs 39.64）——
+远小于朴素基线崩塌所暗示的幅度。有两点须首先说明，因为协议要求如此（A1/A3）。第一，
+SE-ResNet-BiGRU <strong>并非</strong>均值上最强的深度模型：普通 GRU（30.91）、Informer-SE（35.04）与普通
+BiGRU（37.12）都更好，因此这里没有任何东西支持“SE-ResNet-BiGRU 是最佳架构”的说法——组件级
+问题由 §6.7 的受控消融回答。第二，分工况看，SE-ResNet-BiGRU 在工况 1、2 胜、工况 3 负；它也是
+<strong>唯一</strong>在工况 1 上跨过门槛的模型，因此逐工况拆分是双向的，而均值会掩盖它——因为均值被工况 2
+更大的分钟尺度所主导。</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>cond1</th>
+<th>cond2</th>
+<th>cond3</th>
+<th>均值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SE-ResNet-BiGRU</strong></td>
+<td><strong>4.54</strong></td>
+<td><strong>72.54</strong></td>
+<td>35.44</td>
+<td><strong>37.51</strong></td>
+</tr>
+<tr>
+<td>GRU</td>
+<td>9.97</td>
+<td><strong>48.20</strong></td>
+<td>34.56</td>
+<td><strong>30.91</strong></td>
+</tr>
+<tr>
+<td>Informer-SE</td>
+<td>11.00</td>
+<td><strong>47.41</strong></td>
+<td>46.72</td>
+<td><strong>35.04</strong></td>
+</tr>
+<tr>
+<td>BiGRU</td>
+<td>10.75</td>
+<td><strong>68.22</strong></td>
+<td>32.40</td>
+<td><strong>37.12</strong></td>
+</tr>
+<tr>
+<td>LSTM</td>
+<td>15.02</td>
+<td><strong>75.00</strong></td>
+<td>34.96</td>
+<td>41.66</td>
+</tr>
+<tr>
+<td>CNN</td>
+<td>15.12</td>
+<td>90.93</td>
+<td>35.69</td>
+<td>47.25</td>
+</tr>
+<tr>
+<td>Ridge</td>
+<td>12.98</td>
+<td><strong>64.40</strong></td>
+<td>68.05</td>
+<td>48.48</td>
+</tr>
+<tr>
+<td>常数(均值)</td>
+<td>11.46</td>
+<td>88.95</td>
+<td>27.78</td>
+<td>42.73</td>
+</tr>
+<tr>
+<td>常数(一)</td>
+<td>41.44</td>
+<td>204.81</td>
+<td>75.88</td>
+<td>107.38</td>
+</tr>
+<tr>
+<td><em>最优常数(门槛)</em></td>
+<td><em>6.06</em></td>
+<td><em>88.91</em></td>
+<td><em>23.96</em></td>
+<td><em>39.64</em></td>
+</tr>
+</tbody>
+</table>
+<p><em>表 4. XJTU-SY，线性标签（RMSE, min），五种子集成。加粗 = 在该列超过门槛。行序按均值。
+“BiGRU”是消融登记表中的普通双向 GRU（无 SE 模块、无残差提取器）；“GRU”为单向。</em></p>
+<p>另有两点观察。第一，<em>朴素</em>基线从“有竞争力”变为“无关紧要”（48.2 → 107.4 min），这正说明为何
+必须有最优常数界（A2）：这次胜利<strong>不是</strong>打稻草人，因为门槛本身几乎没动。第二，工况 3 仍然
+赢不了（35.44 vs 23.96）——诚实的读法是：该模型的价值<strong>依工况而定</strong>，并非普适。</p>
+<h3>6.3 标签敏感性谱——核心结果（S5L）</h3>
+<p>用 SE-ResNet-BiGRU、另一深度模型（GRU）与最强平凡基线扫描平台长度
+<code>h ∈ {0, 0.5, 0.6, 0.7, 0.8, 0.9}</code>，得到图 2 与表 5。
+<strong>SE-ResNet-BiGRU 与最优常数门槛之间的落差，在整个扫描上随 <code>h</code> 单调，并在 <code>h = 0.5</code> 与
+<code>h = 0.6</code> 之间穿过零点。</strong> 在该平台长度以上，所测任何深度模型都无法超过常数预测器；在更短的
+平台段上，模型取胜。</p>
+<table>
+<thead>
+<tr>
+<th>标签</th>
+<th>最优常数(门槛)</th>
+<th>LI</th>
+<th>常数(一)</th>
+<th>SE-ResNet-BiGRU</th>
+<th>GRU</th>
+<th>常数(均值)</th>
+<th>落差(SE-ResNet-BiGRU − 门槛)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>线性 (h=0)</td>
+<td>39.64</td>
+<td>0.897</td>
+<td>107.38</td>
+<td>37.51</td>
+<td>30.91</td>
+<td>42.73</td>
+<td><strong>−2.14</strong></td>
+</tr>
+<tr>
+<td>h = 0.5</td>
+<td>53.57</td>
+<td>0.594</td>
+<td>76.98</td>
+<td>46.20</td>
+<td>65.61</td>
+<td>56.02</td>
+<td><strong>−7.37</strong></td>
+</tr>
+<tr>
+<td>h = 0.6</td>
+<td>52.62</td>
+<td>0.491</td>
+<td>68.83</td>
+<td>58.23</td>
+<td>65.88</td>
+<td>54.22</td>
+<td>+5.61</td>
+</tr>
+<tr>
+<td>h = 0.7</td>
+<td>49.47</td>
+<td>0.371</td>
+<td>59.53</td>
+<td>67.47</td>
+<td>67.43</td>
+<td>50.37</td>
+<td>+18.00</td>
+</tr>
+<tr>
+<td>h = 0.8</td>
+<td>43.02</td>
+<td>0.247</td>
+<td>48.24</td>
+<td>77.15</td>
+<td>71.34</td>
+<td>43.44</td>
+<td>+34.13</td>
+</tr>
+<tr>
+<td>h = 0.9</td>
+<td>31.91</td>
+<td>0.127</td>
+<td>33.69</td>
+<td>76.18</td>
+<td>67.95</td>
+<td>32.05</td>
+<td>+44.27</td>
+</tr>
+</tbody>
+</table>
+<p><em>表 5. 标签敏感性谱（XJTU-SY，三工况均值，RMSE min）。</em></p>
+<p>三点解读：</p>
+<ol>
+<li><strong>单调的是<em>落差</em>，而非原始误差。</strong> 在 <code>h ∈ {0.5, …, 0.9}</code> 上，落差单调变化
+（−7.4 → +44.3），解析 <code>LI</code> 单调下降（0.897 → 0.127），因此<strong>仅凭标签</strong>即可为结论排序。
+相比之下，SE-ResNet-BiGRU <strong>自身</strong>的 RMSE <strong>并非</strong>严格单调：它从 37.5（线性）升到
+<code>h = 0.8</code> 的 77.2，随后略降到 <strong><code>h = 0.9</code> 的 76.2</strong>。这一背离正是要点——由标签决定的结论
+在 <code>h</code> 上稳定，而原始误差不稳定，这恰恰说明在标签扫描中应跟踪的量是<em>落差</em>而非 RMSE。</li>
+<li><strong>变号是一个可用的设计目标。</strong> 学习增益在 <code>h ≈ 0.55–0.60</code> 处由正转负，标志着（对该模型类
+与数据集而言）“可判别基准”与“饱和基准”的边界。一项（如通常那样）无理由地固定 <code>h = 0.8</code>
+的研究，会报告一个由<strong>标签、而非模型</strong>造成的失败。</li>
+<li><strong>朴素基线不是稳定的参照。</strong> 常数(一) 在扫描中变化 3.2 倍（33.7 ↔ 107.4），而门槛仅变化
+1.7 倍（31.9–53.6）。因此任何仅依附于朴素基线的结论，都是标签的假象。</li>
+</ol>
+<h3>6.4 外部验证：IEEE PHM 2012</h3>
+<p>该机制不应是数据集特有的。在线性标签下于 PHM 2012（2 个单工况任务，每工况 7 个轴承，记录长度
+为 XJTU-SY 的 12.8×，寿命以秒计）重复主要比较：</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>cond1 (h)</th>
+<th>cond2 (h)</th>
+<th>均值 (h)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SE-ResNet-BiGRU</strong></td>
+<td>2.01</td>
+<td><strong>0.27</strong></td>
+<td>1.14</td>
+</tr>
+<tr>
+<td>常数(均值)</td>
+<td>1.87</td>
+<td>0.48</td>
+<td>1.17</td>
+</tr>
+<tr>
+<td>Ridge</td>
+<td>1.99</td>
+<td>0.63</td>
+<td>1.31</td>
+</tr>
+<tr>
+<td>常数(一)</td>
+<td>3.81</td>
+<td>1.03</td>
+<td>2.42</td>
+</tr>
+<tr>
+<td><em>最优常数(门槛)</em></td>
+<td><em>1.86</em></td>
+<td><em>0.35</em></td>
+<td><em>1.11</em></td>
+</tr>
+</tbody>
+</table>
+<p><em>表 6. PHM 2012，线性标签（RMSE，单位：小时）。</em></p>
+<p>此处 SE-ResNet-BiGRU 是受训模型中最好的（1.14 h，对比 Ridge 1.31 与常数-均值 1.17），并在工况 2
+上跨过门槛；但<strong>在该数据集上，它在均值（1.14 vs 1.11 h）与工况 1（2.01 vs 1.86 h）上都没有跨过
+门槛</strong>。<strong>能迁移的是<em>标签</em>效应</strong>，这正是本文的主张：分窗 <code>LI</code> 在线性标签下为 0.784，而在
+<code>h = 0.8</code> 时为 0.158，与 XJTU-SY 的定性行为一致——尽管两个数据集的记录长度、采样时长与时间
+单位都不同。因此该机制是<strong>标注/评分规则的性质</strong>，而非某一个数据集的性质——而架构<em>相对常数的
+优势</em>在此并不迁移，我们也不声称它迁移。</p>
+<h3>6.5 不确定性仍是最薄弱环节</h3>
+<p>名义 95% 预测区间<strong>覆盖不足</strong>，且失效并非单一的误校准常数：覆盖率在不同工况之间剧烈摆动。因此
+我们逐工况报告（A3），因为三工况平均恰好掩盖了真正重要的行为：</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>PICP cond1</th>
+<th>PICP cond2</th>
+<th>PICP cond3</th>
+<th>PICP 均值</th>
+<th>MPIW (min)</th>
+<th>CRPS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SE-ResNet-BiGRU</td>
+<td>0.905</td>
+<td>0.805</td>
+<td>0.301</td>
+<td>0.670</td>
+<td>62.0</td>
+<td>23.47</td>
+</tr>
+<tr>
+<td>GRU</td>
+<td>1.000</td>
+<td>0.841</td>
+<td>0.542</td>
+<td>0.794</td>
+<td>75.8</td>
+<td>19.30</td>
+</tr>
+<tr>
+<td>BiGRU</td>
+<td>0.476</td>
+<td>0.776</td>
+<td>0.627</td>
+<td>0.626</td>
+<td>70.7</td>
+<td>22.91</td>
+</tr>
+<tr>
+<td>CNN</td>
+<td>0.619</td>
+<td>1.000</td>
+<td>0.964</td>
+<td>0.861</td>
+<td>108.5</td>
+<td>28.37</td>
+</tr>
+<tr>
+<td>LSTM</td>
+<td>0.000</td>
+<td>0.568</td>
+<td>0.470</td>
+<td>0.346</td>
+<td>56.0</td>
+<td>27.63</td>
+</tr>
+<tr>
+<td>Informer-SE</td>
+<td>1.000</td>
+<td>0.659</td>
+<td>0.193</td>
+<td>0.617</td>
+<td>54.5</td>
+<td>23.23</td>
+</tr>
+</tbody>
+</table>
+<p><em>表 7. 区间校准，XJTU-SY，线性标签；名义 PICP = 0.95。MPIW 与 CRPS 为三工况均值。</em></p>
+<p><strong>没有任何模型是校准的。</strong> 仅 CNN 的均值接近名义覆盖（0.861），但代价是<strong>最宽</strong>的区间
+（MPIW 108.5 min，对比 SE-ResNet-BiGRU 的 62.0）。SE-ResNet-BiGRU 在<strong>每一个</strong>工况上都覆盖不足
+（0.905 / 0.805 / 0.301）并在工况 3 上崩坏；LSTM 在工况 1 上覆盖率为 0.000，同时在该工况上比其他
+任何模型都<em>更窄</em>——因此“窄”与“误覆盖”是<strong>纠缠</strong>的，而非此消彼长。覆盖并非区间宽度的单调函数：
+GRU 以 MPIW 32.6 min 完美覆盖工况 1，而 CNN 在工况 2 上需要 211.0 min 才达到 1.000。我们将其作为
+<strong>阴性结果</strong>报告而非隐去：在退化保真标签下，RUL 的区间校准在我们的流水线中尚未解决，是未来
+工作最清晰的目标。</p>
+<p><strong>关于线性标签下 PHM 评分的一点说明。</strong> 官方 PHM 2012 评分使用<em>相对</em>误差，因此当真实 RUL 趋于
+零时评分饱和趋近 0；在线性标签下最后若干窗口的真实 RUL ≈ 1 分钟，于是所有窗口上的官方评分均值
+退化（多个模型观测到 ~10⁻⁴ 量级的值，指数部分出现浮点溢出）。因此在线性标签下，报告一个在全部
+窗口上计算的官方评分均值是<strong>没有意义的</strong>。我们指出，这可能是该领域向分段常数标签漂移的一个被
+忽视的原因：平台段使真实 RUL 远离零。但这并不是一个好理由——它以“评分病态”换了“非判别基准”
+——然而它必须被披露（规则 A4），而非被隐藏。</p>
+<h3>6.6 严格配对设计下的跨工况迁移</h3>
+<p>原研究的核心结论是一个<em>跨工况</em>迁移结果：源工况训练模型，另一工况作目标，由 MK-MMD 对齐二者。
+规则 A5、A8、A9 把它变成一个可证伪的实验——并且，如我们所示，使这类比较通常的列表方式失效。
+为此须先移除两个设计缺陷。</p>
+<p><strong>(i) 两臂必须共享测试总体（A8）。</strong> 在原比较中，跨工况臂在全部五个目标轴承（6879 个窗口）上
+评分，而同工况臂只在一个（83 个窗口）上评分。在不同窗口总体上聚合不是比较：跨工况数字被寿命
+最长的轴承所主导，把它与那单个轴承配对，会使聚合量变化约 <strong>27 倍</strong>（946.6 → 35.3 min）。因此我们
+把实验重建为<strong>五折留一轴承（leave-one-bearing-out）<strong>设计：第 <code>k</code> 折留出轴承 <code>k</code> 作测试轴承，
+两臂共享同一划分，并在</strong>字节完全相同</strong>的目标轴承上评测。两臂之间唯一不同的是<em>训练数据来自哪个
+工况</em>；特别地，常数地板是共享的，因此无需重新校准，且 <code>R_cross = RMSE_cross / RMSE_single</code>
+可直接解释。统计单元是<strong>测试轴承实例</strong> = <code>(工况, 轴承)</code>：5 折 × 3 工况 = <strong>n = 15</strong> = 全部 XJTU-SY
+轴承。一个单元内的三个源任务变体是<strong>重复测量</strong>而非独立样本；因此我们报告分布与轴承层级的
+bootstrap 区间，并把 p 值仅作参考。</p>
+<p><strong>(ii) 中位数比值校正是臂专属的（A9）。</strong> 跨工况路径用一个在带标签的源验证划分上拟合的因子对
+预测重缩放。对恒答比例 <code>c</code> 的常数预测器，该因子为 <code>median(val_ratio)/c</code>，故校正后的预测为
+<code>median(val_ratio) × lifetime</code>——<strong>与 <code>c</code> 无关</strong>。因此每个常数都塌到同一点（校正表中 <code>constant_one</code>
+与 <code>constant_mean</code> 到小数点后四位一致，而未校正时差异显著）；更重要的是，该因子<strong>只</strong>施加于跨工况
+臂，而在同工况臂上按构造为 1.0。于是校正后的数值相差一个与模型无关的臂专属常数，<strong>不能</strong>用于
+跨协议比较。下文所有比值均为<strong>未校正</strong>口径；校正口径仅作为协议内敏感性出现。</p>
+<p><strong>(iii) 只有一个模型能对操纵作出响应（A5）。</strong> MK-MMD 仅施加于暴露了对齐表示的模型。CNN、LSTM、
+GRU 与 Informer 基线没有这样的头，故对它们而言两臂按构造完全相同，不得报告任何“对齐增益”。因此
+我们显式声明直推式设定。密封设计的跨工况臂是直推式的（<code>uda.enabled: true</code>，MK-MMD 权重 0.1）；
+其开/关对照是与“单源 vs 跨工况”不同的一项实验，需要同样的配对重设计，且<strong>不</strong>沿用早期未配对的
+运行。本节不作任何对齐增益的主张。</p>
+<table>
+<thead>
+<tr>
+<th>目标工况</th>
+<th>n</th>
+<th><code>R_cross</code>（配对）</th>
+<th>95% CI</th>
+<th>跨工况更优</th>
+<th>ΔRMSE (min)</th>
+<th><code>n_train</code> 比 (跨/单)</th>
+<th><code>R_cross</code>（训练量匹配）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>cond1</td>
+<td>5</td>
+<td>1.06</td>
+<td>[0.76, 1.28]</td>
+<td>40%</td>
+<td>+0.5</td>
+<td>15.2×（跨工况<strong>更多</strong>）</td>
+<td>0.90</td>
+</tr>
+<tr>
+<td>cond2</td>
+<td>5</td>
+<td>0.96</td>
+<td>[0.65, 3.00]</td>
+<td>60%</td>
+<td>−1.8</td>
+<td>5.2×（跨工况<strong>更多</strong>）</td>
+<td>1.16</td>
+</tr>
+<tr>
+<td>cond3</td>
+<td>5</td>
+<td>1.18</td>
+<td>[1.02, 1.43]</td>
+<td>0%</td>
+<td>+166.2</td>
+<td>0.19×（跨工况<strong>更少</strong>）</td>
+<td>1.40</td>
+</tr>
+<tr>
+<td><strong>全部</strong></td>
+<td><strong>15</strong></td>
+<td><strong>1.09</strong></td>
+<td><strong>[0.89, 1.28]</strong></td>
+<td><strong>33%</strong></td>
+<td><strong>+3.4</strong></td>
+<td><strong>0.05×–24.5×</strong></td>
+<td><strong>1.16</strong></td>
+</tr>
+</tbody>
+</table>
+<p><em>表 8. 严格配对设计下的跨工况 vs 同工况训练（XJTU-SY，线性标签，未校正口径）。两臂在同一划分
+上训练，并在字节完全相同的测试轴承上评测，因此常数地板共享，<code>R_cross = RMSE_cross/RMSE_single</code>
+无需重新校准。单元 = 测试轴承实例（<code>工况 × 轴承</code>），n = 15 = 全部 XJTU-SY 轴承；CI = 轴承层级
+bootstrap。ΔRMSE 以分钟计（跨 − 单）。末列把每臂封顶到相同训练窗口数（<code>K</code> = 四臂最小值）后重复
+比较。口径说明（A9）：中位数比值校正仅施加于跨工况臂，故所有比值为未校正。</em></p>
+<p><strong>解读。</strong> 在 15 个单元上，配对比值中位数为 <strong>1.09</strong>（95% CI [0.89, 1.28]）：跨工况训练在中位轴承
+上略<em>差</em>，中位代价为 <strong>+3.4 min</strong>（CI [−1.8, +12.6]），且仅在 <strong>15 个实例中的 5 个</strong>（33%）上更好。
+两个区间都跨越零；逐折中位数变号（5 折中 3 折大于 1）；效应量（|中位 − 1| = 8.6%）远小于折间
+跨度（42%）——后者是<em>留出哪个轴承</em>的性质，而非测量误差。可辩护的表述是：跨工况训练<strong>没有稳定、
+一致的优势</strong>：其方向随留出轴承与任务而变。我们<strong>有意不</strong>写“等效”或“无差异”，因为区间是<strong>宽</strong>
+而非<strong>紧贴零</strong>。</p>
+<p><strong>逐工况，以及训练量混淆。</strong> 三个工况意见不一，且这一模式具有诊断意义。cond1（1.06）与
+cond2（0.96）落在其折间跨度内、覆盖 1，而 cond3 单独地持续大于 1（1.18；5 折中 0 折低于 1；
++166 min）。cond3 也是唯一一个其跨工况臂训练数据<em>少于</em>同工况对手的工况（中位比值 0.19×），这是
+显而易见的混淆——于是我们把它排除掉。</p>
+<p><strong>拉平训练量并不能解释残差——这是本节最强的结果。</strong> 我们重建每个单元，使四臂使用<strong>完全相同</strong>
+数量的训练窗口（<code>K</code> = 各臂最小值；逐轴承按比例子采样，缩放器在封顶划分上重新拟合，评测划分
+保持不变，且同一构造经与原版逐一核验）。配对变化在中位单元上为 <strong>−0.004</strong>（95% CI [−0.09, +0.16]；
+Wilcoxon p = 0.85）：匹配训练量<strong>什么也没改变</strong>。变化的方向也与训练量解释相悖——两个跨工况臂
+失去数据的工况（cond1、cond2）并未相对变差，而跨工况臂获得数据的 cond3（0.19× → 1.00×）
+反而<strong>变差</strong>，而非变好（1.18 → 1.40）。因此 cond3 的残差<strong>既不是训练量假象，也不是被证实的域效应</strong>；
+在每工况五个轴承下，它<strong>仍未归属</strong>，我们如实说明，而不挑选一个偏好的解释。</p>
+<p><strong>一个零学习对照让算术变得可见。</strong> 用常数预测器（训练集均值）重复该配对设计，两臂的
+<code>R_cross</code> = 1.02，且不受训练量匹配影响。这确认了两臂是在相同数据上评分，且工况间纯标签分布
+漂移约为 <strong>2%</strong>——因此所学模型相对常数的有限超出是<strong>学习侧</strong>效应，而非标签假象。</p>
+<p><strong>A7/A10：可复现性界，已定位并移除。</strong> 本节早先的版本无法分辨低于实测逐次离散度的差异：两臂在
+CNN 上相差 135 min（27.9%）——而 CNN 没有对齐头，因此<strong>必然</strong>应当相同；把同一配置重复三次，在
+九个任务中的七个上逐位复现，但在两个上漂移了 6% 与 31%。该离散度只有一个根因：模型在设置随机
+种子<strong>之前</strong>就被实例化，故其初始权重来自未播种的全局 RNG（“漂移集中在最早任务上”的模式是<strong>症状</strong>
+而非原因）。把种子移到构建之前后，相同配置现在在两臂上都<strong>逐位复现（0.0% 离散度）</strong>。第二个更
+隐蔽的非确定性存在于<em>评测</em>路径：蒙特卡洛 Dropout 采样器未播种，故重评测存储的检查点无法复现
+完整重训；为采样器播种后，检查点重评测与完整流水线逐位一致（A10）。因此早先草稿中承载的后果
+——对齐结论的一个“排除预热期”变体，以及“拒绝声称任何比离散度更细的差异”——对本文流水线而言
+已不再适用。§6.3 的变号仍报告到网格步长，这是扫描分辨率的问题，而非离散度的问题。</p>
+<h3>6.7 受控评测下的架构因子与迁移稳健性</h3>
+<p>前几节表明：模型排名受标签构造的强烈影响（§6.3），且一旦比较被配对、训练量被匹配，跨工况训练
+就不携带稳定优势（§6.6）。尚未被审视的是<strong>架构本身</strong>。本节追问：模型之间残余的性能差异能否归因
+于特定的架构组件？以及，增加的复杂度能否在工况变化下存活？三个问题被放在同一协议下：组件级
+贡献分析（6.7.1）、标签所致变号是否依赖架构的检验（6.7.2）、以及跨架构族的配对跨工况比较（6.7.3）。</p>
+<p>此处所有模型均在冻结的 <code>base.yaml</code> 协议下<strong>从头训练</strong>——相同的窗口长度、相同的损失、相同的划分、
+相同的早停规则，以及 §6.6 的“先播种后构建”次序——因此两行之间唯一变化的就是该行所指名的因子。
+<code>G</code> 与 <code>ΔG</code> 沿用自 §6.3 以来的定义；不引入新指标。</p>
+<h4>6.7.1 组件级分析：没有任何组件提供可靠的增益</h4>
+<p>我们沿三条边分解载体架构，每条边与其父模型恰好相差一个因子：<strong>残差提取器</strong>
+（BiGRU → ResNet-BiGRU）、<strong>注意力模块</strong>（ResNet-BiGRU → SE-ResNet-BiGRU）、<strong>双向循环</strong>
+（SE-ResNet-GRU → SE-ResNet-BiGRU）。每条边都在相同的三个工况上评分，因此 <code>ΔG</code> 是在两个于<strong>相同
+目标窗口</strong>上评测的模型之间配对计算的。</p>
+<table>
+<thead>
+<tr>
+<th>边</th>
+<th>因子</th>
+<th>ΔG cond1</th>
+<th>ΔG cond2</th>
+<th>ΔG cond3</th>
+<th>ΔG 中位数</th>
+<th>95% CI</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>BiGRU → ResNet-BiGRU</td>
+<td>残差提取器</td>
+<td>+0.485</td>
+<td>+0.074</td>
+<td>−0.086</td>
+<td><strong>+0.074</strong></td>
+<td>[−0.086, +0.485]</td>
+</tr>
+<tr>
+<td>ResNet-BiGRU → SE-ResNet-BiGRU</td>
+<td>注意力模块</td>
+<td>+0.058</td>
+<td>−0.123</td>
+<td>−0.023</td>
+<td><strong>−0.023</strong></td>
+<td>[−0.123, +0.058]</td>
+</tr>
+<tr>
+<td>SE-ResNet-GRU → SE-ResNet-BiGRU</td>
+<td>双向循环</td>
+<td>+0.165</td>
+<td>−0.200</td>
+<td>+0.108</td>
+<td><strong>+0.108</strong></td>
+<td>[−0.200, +0.165]</td>
+</tr>
+<tr>
+<td><em>CNN → BiGRU</em>（补充）</td>
+<td><em>家族比较</em></td>
+<td><em>+0.382</em></td>
+<td><em>+0.255</em></td>
+<td><em>+0.118</em></td>
+<td><em>+0.255</em></td>
+<td><em>[+0.118, +0.382]</em></td>
+</tr>
+</tbody>
+</table>
+<p><em>表 9. 组件级贡献，受控消融。<code>ΔG</code> 为加入所指名因子后学习增益的配对变化；区间为三个工况上的
+最小–最大（每条边三个单元），最后一行是<strong>不</strong>属于三边分解的跨家族比较。</em></p>
+<p><strong>三条置信区间都包含零</strong>，且三个因子中没有一个在工况间保持一致的符号——每条至少翻转一次
+（提取器：+0.485、+0.074、−0.086；注意力：+0.058、−0.123、−0.023；双向：+0.165、−0.200、+0.108）。
+在所评协议下，<strong>没有任何单个架构组件提供统计上可靠的提升。</strong> 我们将其陈述为<strong>关于本协议与本模型
+家族</strong>的实验结果，而非关于任何具名模块的断言：区间之所以宽，是因为它们依托于三个单元，且一个
+组件仍可能在这些工况之外起作用。</p>
+<p>有两点防止该零结果被“容量”解释掉。第一，注意力模块在 ResNet-BiGRU 之上仅增加 <strong>2,560 个参数
+（+0.9%）</strong>（283,265 vs 280,705），故其中性效果并非因为“可学的东西太少”。第二，<strong>唯一</strong>区间不
+含零的边是<strong>跨家族</strong>那条——CNN → BiGRU 的 +0.255 [+0.118, +0.382]——它是架构<strong>家族之间</strong>的比较，
+而非单因子消融，因此我们单独记录，不并入三边链。两者合起来给出诚实的读法：在<strong>本家族内</strong>，架构
+改进对学习增益的推动，小于工况之间的变异。</p>
+<h4>6.7.2 标签所致的变号并非架构特有</h4>
+<p>§6.3 识别出模型对门槛的落差在 <code>h = 0.5</code> 与 <code>h = 0.6</code> 之间发生变号。该转变究竟是标签的性质、
+还是某个网络的巧合，此前未被检验。因此我们对四个<strong>独立训练</strong>的架构重复标签扫描——<strong>没有</strong>重用
+§6.3 的检查点——并在相同的六个网格点上计算 <code>G_m(h)</code>。</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>线性</th>
+<th>h = 0.5</th>
+<th>h = 0.6</th>
+<th>h = 0.7</th>
+<th>h = 0.8</th>
+<th>h = 0.9</th>
+<th>变号区间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SE-ResNet-BiGRU</td>
+<td>+0.171</td>
+<td>+0.090</td>
+<td>−0.052</td>
+<td>−0.256</td>
+<td>−0.639</td>
+<td>−1.340</td>
+<td>h = 0.5 → h = 0.6</td>
+</tr>
+<tr>
+<td>ResNet-BiGRU</td>
+<td>+0.200</td>
+<td>+0.064</td>
+<td>−0.021</td>
+<td>−0.184</td>
+<td>−0.572</td>
+<td>−1.090</td>
+<td>h = 0.5 → h = 0.6</td>
+</tr>
+<tr>
+<td>SE-ResNet-GRU</td>
+<td>+0.147</td>
+<td>+0.053</td>
+<td>−0.007</td>
+<td>−0.169</td>
+<td>−0.373</td>
+<td>−1.254</td>
+<td>h = 0.5 → h = 0.6</td>
+</tr>
+<tr>
+<td>BiGRU</td>
+<td>+0.043</td>
+<td>−0.097</td>
+<td>−0.165</td>
+<td>−0.271</td>
+<td>−0.476</td>
+<td>−0.942</td>
+<td>线性 → h = 0.5</td>
+</tr>
+</tbody>
+</table>
+<p><em>表 10. 四个独立训练架构在标签扫描上的学习增益 <code>G_m(h)</code>。最右列为观测到的 <code>G</code> 变号区间；
+不报告内插的 <code>h*</code>（见 §5, A6）。</em></p>
+<p><code>G_m(h)</code> 对四个模型都随 <code>h</code> 单调下降，且四者都从正变负。其中三个——两个基于 ResNet 的模型与
+GRU 变体——在<strong>同一区间 <code>h = 0.5 → h = 0.6</code></strong> 变号，在一次全新的训练运行上复现了 §6.3 的转变；
+第四个（BiGRU，最浅者）早一个网格点变号，位于线性标签与 <code>h = 0.5</code> 之间。四条曲线的排序本身也有
+启发：在每个网格点上，两个基于 ResNet 的模型都位于两个更浅的模型之上，即低 <code>h</code> 处的深度相关
+优势<strong>随平台段增大而收缩、继而反转</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>ΔG 边（因子）</th>
+<th>线性</th>
+<th>h = 0.5</th>
+<th>h = 0.6</th>
+<th>h = 0.7</th>
+<th>h = 0.8</th>
+<th>h = 0.9</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>提取器</td>
+<td>+0.157</td>
+<td>+0.160</td>
+<td>+0.144</td>
+<td>+0.087</td>
+<td>−0.097</td>
+<td>−0.148</td>
+</tr>
+<tr>
+<td>注意力模块</td>
+<td>−0.029</td>
+<td>+0.027</td>
+<td>−0.032</td>
+<td>−0.072</td>
+<td>−0.066</td>
+<td>−0.250</td>
+</tr>
+<tr>
+<td>双向循环</td>
+<td>+0.024</td>
+<td>+0.037</td>
+<td>−0.045</td>
+<td>−0.087</td>
+<td>−0.266</td>
+<td>−0.085</td>
+</tr>
+</tbody>
+</table>
+<p><em>表 11. §6.7.1 的三条组件边在每个标签点上的重评测。低 <code>h</code> 为正、高 <code>h</code> 为负：组件贡献的符号
+取决于标签。</em></p>
+<p>表 11 说明为何 §6.7.1 的组件分析必须固定在某一标签下阅读。提取器边在线性标签与 <code>h = 0.5</code> 下
+明显为正（+0.157、+0.160），在扫描中部变得与零无法区分，并在 <code>h = 0.8</code> 与 <code>0.9</code> 转负
+（−0.097、−0.148）。另两条边以更小幅度遵循同一模式。<strong>没有任何组件具有与标签无关的符号</strong>：
+一次改进是否有效，是<strong>平台段被放在哪里</strong>的函数，而非该改进本身的函数。这就是本文标题背后的
+机制，也是为什么表述必须是“标签决定结论”而非“这个组件有效”。</p>
+<p>该转变在同一协议下跨越四个架构存活，意味着所观测的学习增益转变<strong>主要与标签构造相关联，而非与
+某个特定的网络设计相关联</strong>。我们止步于这一<strong>关联</strong>：在每次估计仅三到十五个单元的情况下，该设计
+并不支持“标签<em>导致</em>该变号”的因果断言。</p>
+<h4>6.7.3 架构变化下的跨工况迁移</h4>
+<p>最后一个问题是：当工况变化时，增加的复杂度能否换来稳健性。<strong>与 §6.6 的单源迁移分析不同，本实验
+评测的是双源迁移设定</strong>（两个工况合并为源、第三个作目标），故其 <code>R_cross</code> 值与 §6.6 的数字
+<strong>不可比</strong>，仅相互之间比较（见 §5, A9）。跨消融阶梯的三个架构在五折上比较；统计单元同样是测试
+轴承实例，此处为 <code>(折, 目标工况)</code>，共 <strong>n = 15</strong> 个单元，且单元内的三个源任务变体是重复测量，
+按中位数折叠。</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>n 单元</th>
+<th><code>R_cross</code> 中位数</th>
+<th>95% CI</th>
+<th>ΔRMSE 中位数 (min)</th>
+<th>95% CI</th>
+<th>跨工况更优</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SE-ResNet-BiGRU</td>
+<td>15</td>
+<td>1.287</td>
+<td>[1.151, 1.817]</td>
+<td>+14.59</td>
+<td>[+8.62, +71.53]</td>
+<td>13%</td>
+</tr>
+<tr>
+<td>ResNet-BiGRU</td>
+<td>15</td>
+<td>1.202</td>
+<td>[1.012, 2.118]</td>
+<td>+11.06</td>
+<td>[+1.09, +23.19]</td>
+<td>27%</td>
+</tr>
+<tr>
+<td>BiGRU</td>
+<td>15</td>
+<td>0.991</td>
+<td>[0.792, 1.690]</td>
+<td>−8.23</td>
+<td>[−19.79, +22.76]</td>
+<td>60%</td>
+</tr>
+</tbody>
+</table>
+<p><em>表 12. 跨工况迁移，双源协议，<code>R_cross</code> = RMSE(跨)/RMSE(单)。按 §5（A4、S5），比值与以分钟计的
+绝对差须并列报告，且始终附带 <code>n</code>；仅凭比值大于 1 不足以作为迁移代价的证据。</em></p>
+<p>两个更深的架构在中位数上带有<strong>一致</strong>的代价——<code>R_cross</code> 1.287 与 1.202，区间都在 1 以上——而最浅
+的架构 BiGRU 是唯一区间包含 1 的（0.991 [0.792, 1.690]），也是唯一中位 ΔRMSE 为负的。若只看比值，
+这看起来像一次“反转”：模型越深，迁移越差。<strong>这一读法经不起逐单元细节的检验。</strong> 在相同 15 个
+单元上做配对检查，提取器差异为 +0.410 [0.021, 0.602]——一个不含零的区间——然而<strong>15 个单元中仅 3 个
+在加入提取器后更好</strong>，且单个单元的翻转幅度超过中位效应（一个单元 +3.41，另一个 −2.83）。注意力
+模块差异为 +0.067 [−0.405, +0.348]，区间含零，15 个单元中 7 个更好。宽区间、少数有利单元、以及
+逐单元符号翻转三者合一，意味着<strong>这些中位数并非一个排名</strong>。</p>
+<p><strong>结果并未显示“增加架构复杂度”带来稳健的迁移优势</strong>，也<strong>未</strong>确立相反结论。该实验支持的是一项
+<strong>有界</strong>的陈述：在所测架构中，增加的复杂度并未使预测对工况变化更稳健，而<strong>最简约的架构是唯一其
+迁移代价无法与零区分的</strong>。这些发现提示：<strong>仅靠增加架构复杂度，可能无法克服工况偏移所带来的
+困难</strong>——这一结论与 §6.6 的负向迁移结果从不同方向相合，我们将它带入 §7.2。</p>
+<hr />
+<h2>7. 讨论</h2>
+<h3>7.1 为什么标签构造主导了模型排名</h3>
+<p>我们的结果支持一个比“标签很重要”更强的陈述。对所测模型类而言，基准在小 <code>h</code> 下有判别力、在大
+<code>h</code> 下饱和，且<strong>转变被观测到发生在 <code>h = 0.5</code> 与 <code>h = 0.6</code> 两个网格点之间</strong>。我们把它作为<strong>区间</strong>
+而非一个点报告：扫描网格是粗的，且不内插任何临界值。该区间与常数基线表述的解析边界一致——
+仅依赖标签的量 <code>LI(h) = 3(1−h)/4</code> 确定了常数预测器在何处不再能被击败——因此该实证转变是
+<strong>支持</strong>理论，而非从理论<em>估计</em>出来。§6.7 在四个独立训练的架构上复现了同一转变，这就是我们把
+排名变化归因于标签、而非某一个网络的原因。因此，在单一 <code>h</code> 上报告单一 RMSE 而不给出扫描，是
+<strong>欠定的</strong>：它报告的是一条符号在别处才被决定的曲线上的一个点。</p>
+<h3>7.2 为什么架构复杂度并不保证提升</h3>
+<p>对一个递减的“模型对门槛”落差，自然的读法是“网络有问题”。§6.7 表明并非如此，或至少并非以该
+问题通常被提出的方式。沿三条边——残差提取、注意力加权、双向循环——的受控消融表明，<strong>没有任何
+组件具有统计上可靠的贡献</strong>，而且更能说明问题的是，<strong>没有任何组件的贡献在 <code>h</code> 变化时保持同一
+符号</strong>。三者中改动最小的注意力模块（+0.9% 参数）与噪声无法区分；提取器在低 <code>h</code> 有帮助、在高 <code>h</code>
+有害。因此，被普遍采用的模块应被理解为<strong>给定任务表述下的设计选择</strong>，而非有保证的改进来源。</p>
+<p>两点限定防止这变成过度主张。第一，架构增益是<strong>有条件的，而非不存在</strong>：一项改进对某个特定退化
+机制、更丰富的传感环境、或不同的标签定义仍可能有价值——结果所排除的，是把这种增益<strong>脱离</strong>标签
+构造与评测设定所引入的难度来解读。第二，我们<strong>不</strong>声称所评架构达到当前最优：它有意是常规的，
+在 <strong>线性标签</strong>下，一个普通的单向 GRU 就能在三工况均值上击败它（30.91 vs 37.51 min），而普通
+BiGRU 与它持平（37.12 vs 37.51）。我们也不声称线性标签在物理上正确——只说它是一个对基准而言
+<strong>信息量更大</strong>的目标。</p>
+<h3>7.3 对 RUL 基准评测的启示</h3>
+<p>对实践者我们建议：(i) 在训练前先计算 <code>LI</code>；若 <code>LI &lt; 0.3</code>，预期该基准已饱和，先修标签；
+(ii) 始终报告最优常数界，而非朴素基线；(iii) 报告逐工况结果；(iv) 若使用平台段，就扫描它并
+报告观测到的变号区间。这些就是 §5 十条规则的可操作内容。</p>
+<p>更广的启示是一种<strong>次序</strong>而非禁令。<strong>只有当任务表述与评测协议已被验证之后，才应考虑架构选择</strong>：
+本文结果表明，一个基准可以在训练任何模型之前就被做成非判别的，而对一个固定模型的结论，可以仅
+通过改变标签而被反转。我们不声称跨工况迁移不可能——只在无泄漏协议与完整基线阶梯之下，我们
+<strong>无法证明它</strong>（§6.6）。未来研究应先确立可比较的任务定义与评测协议，再把它归因于架构创新。
+本文的贡献是<strong>方法学</strong>的：一个闭式、一次受控扫描、一项受控消融、一套协议。</p>
+<h3>7.4 局限与效度威胁</h3>
+<ul>
+<li><strong>跨工况范围。</strong> 两项迁移实验回答的是相关但不同的问题，其数值不应被直接比较：§6.6 的分析
+评测的是<strong>单源</strong>迁移，而 §6.7 的分析评测的是<strong>双源</strong>迁移（两个工况合并为源、第三个作目标）。
+把两个 <code>R_cross</code> 数字并排放置的读者，比较的是不同的协议；规则 A9（§5）正是为阻止这一点而存在。</li>
+<li><strong>架构覆盖。</strong> 本研究考察了若干有代表性的架构因子——卷积特征提取、注意力模块、双向循环结构。
+结论<strong>不应</strong>被推广到所有可能的神经网络架构。其目的不是排除架构创新，而是澄清架构复杂度
+<strong>何时</strong>能够、<strong>何时</strong>不能，被解读为 RUL 学习得到改善的证据。</li>
+<li><strong>模型类别。</strong> 六个深度模型、一个 SE/GRU 家族、五个种子。具有更强归纳偏置的模型可能移动变号点，
+尽管该机制（及 <code>LI</code>）与模型无关。</li>
+<li><strong>规模。</strong> XJTU-SY 在单工况协议中贡献三个测试轴承；因此逐工况主张基于一个轴承（XJTU-SY）或
+两个（PHM 2012）。这是该基准固有的，也正是逐工况披露（A3）重要的原因。</li>
+<li><strong>迁移结论。</strong> 该比较现在是严格配对的（§6.6），而迁移主张<strong>未能</strong>在其下存活：跨工况训练相对
+同工况训练没有稳定、一致的优势，且跨臂匹配训练集规模并不改变该结论。这既是我们协议的局限，
+也是原主张的局限——一种对齐机制、一个特征空间、一个主干、十五个测试实例——但它是<strong>如实报告</strong>
+的，而非被隐去。</li>
+<li><strong>不确定性。</strong> 覆盖率不足（§6.5）。</li>
+<li><strong>可复现性。</strong> 我们定位并移除了逐次漂移的来源：模型在设置随机种子<strong>之前</strong>被实例化，故初始权重
+来自未播种的全局 RNG。把种子移到构建之前后，相同配置<strong>逐位复现（0.0% 离散度）</strong>，并在单工况
+与跨工况两臂上均经验证。我们还发现并修复了<em>评测</em>路径中的第二个非确定性——蒙特卡洛 Dropout
+采样器未播种，致使重评测存储的检查点无法复现完整重训；采样器现已播种，检查点重评测与完整
+流水线逐位一致（A10）。规则 A7 全程适用；且没有任何主张建立在一个小于实测离散度的差异之上，
+而该离散度现在为零。</li>
+</ul>
+<hr />
+<h2>8. 结论</h2>
+<p>一种被广泛使用的 RUL 标注惯例——在寿命的前 <code>h</code> 段平台保持为 1.0、其后线性——使基准的判别力
+成为 <code>h</code> 的<strong>闭式函数</strong>。本文追问：一个深度 RUL 模型表面上的成功或失败，有多大比例可归因于标签
+定义与评测协议，而非归因于模型；答案是——<strong>它可能占绝大部分</strong>：在相同数据、相同流水线与相同
+架构下，<strong>结论由标签决定</strong>。</p>
+<p>在连续极限下，朴素预测器误差中已可被常数解释的比例为 <code>1 − 3(1−h)/4</code>，因此在常见的 <code>h = 0.8</code> 处，
+一个常数即可解释其 85%。在 XJTU-SY 上，在其余条件相同的情况下扫描 <code>h</code>，使模型从输给最优常数
+34 min（<code>h = 0.8</code>）变为胜过它 2 min（<code>h = 0</code>），且变号发生在 <code>h = 0.5</code> 与 <code>h = 0.6</code> 之间（解析
+预测为 <code>h = 0.60</code>）；同一排序在 IEEE PHM 2012 上复现。</p>
+<p>在标签机制之外，受控的架构分析表明：<strong>网络复杂度的提升不应被解读为提升的有保证来源。</strong> 在同一
+评测协议下，残差特征提取、注意力加权与双向循环在各自单独考察时均<strong>未提供统计上可靠的增益</strong>，
+且没有任何组件在标签设定间保持同一符号。此外，该变号行为在<strong>独立训练的</strong>架构上复现，提示这一
+学习转变与<strong>剩余寿命标签构造</strong>相关联，而非与某个特定的网络设计相关联。跨工况分析进一步表明，
+<strong>仅靠架构复杂度无法确保稳健的迁移能力</strong>：与其依据孤立的性能差异给架构排名，可靠的结论要求
+显式考虑迁移设定、评测单元与不确定性。</p>
+<p>实践含义是：RUL 基准论文应把<strong>标签当作实验因子</strong>，并披露平凡基线阶梯、其解析下界、逐工况结果、
+评分定义、直推式设定，以及自身的逐次运行离散度。我们提出了十条这样的规则并全程应用——<strong>包括
+应用于那些未能存活的结论</strong>：在严格配对、无泄漏的跨工况协议下，跨工况臂相对同工况训练没有稳定、
+一致的优势，且把每臂封顶到相同训练集规模并不改变该结论。<strong>不确定性量化是尚未解决的问题</strong>：
+对该模型而言，名义 95% 区间仅覆盖 67% 的测试窗口。</p>
+<hr />
+<h2>致谢</h2>
+<p><em>[待补充]</em></p>
+<h2>数据与代码可用性</h2>
+<p>XJTU-SY 与 IEEE PHM 2012 均为公开数据集。本流水线是配置驱动的：本文每一个数字都可由
+<code>configs/*.yaml</code> 与五个种子经 <code>scripts/00</code>–<code>scripts/17</code> 重新生成；逐表溯源见
+<code>paper/tables/tables.md</code> 与 <code>paper/tables/cross_transfer.md</code>。§6.6 的严格配对跨工况设计为
+<code>configs/matched_folds/fold{k}.yaml</code>（五折）及其训练量匹配重建
+<code>configs/matched_folds_vm/fold{k}.yaml</code>，由 <code>scripts/19_make_matched_folds.py</code>、
+<code>scripts/28_make_volume_matched.py</code> 与 <code>scripts/29_run_volume_matched.py</code> 驱动；单元级统计由
+<code>scripts/23_stat_unit_rcross.py</code> 计算。§6.7 的架构与迁移实验使用一个独立的冻结根，由
+<code>scripts/36_run_stage4.py</code>（训练）与 <code>scripts/37_stage4_analysis.py</code>（表格与区间）驱动，其
+确定性探针在 <code>scripts/38_stage4_determinism_probe.py</code>；所得表格在 <code>paper/tables/stage4_tables.md</code>。
+可复现性由 <code>scripts/17_reproducibility_probe.py</code> 探测，闭式常数锚点由
+<code>scripts/15_cross_transfer.py</code> 给出。</p>
+<h2>参考文献</h2>
+<p><em>(下列文献在投稿前须逐条与出版方记录核验；未使用任何编造的标识符。标注 ⌗ 的卷/页码须从出版方
+数据库补全。)</em></p>
+<ol>
+<li>Lei, Y., Li, N., Guo, L., Li, N., Yan, T., Lin, J. (2018). Machinery health prognostics: A systematic review. <em>Mechanical Systems and Signal Processing</em>, 104, 799–834.</li>
+<li>Si, X.-S., Wang, W., Hu, C.-H., Zhou, D.-H. (2011). Remaining useful life estimation — a review. <em>European Journal of Operational Research</em>, 213(1), 1–14.</li>
+<li>Wang, B., Lei, Y., Li, N., Li, N. (2020). A hybrid prognostics approach for estimating remaining useful life of rolling element bearings. <em>IEEE Transactions on Reliability</em>, 69(1), 401–412. <em>(XJTU-SY 数据集)</em></li>
+<li>Nectoux, P., Gouriveau, R., Medjaher, K., et al. (2012). PRONOSTIA: An experimental platform for bearings accelerated degradation tests. <em>IEEE PHM 2012</em>. <em>(PHM 2012 数据集)</em></li>
+<li>Saxena, A., Goebel, K., Simon, D., Eklund, N. (2008). Damage propagation modeling for aircraft engine run-to-failure simulation. <em>PHM 2008</em>.</li>
+<li>Gretton, A., Borgwardt, K., Rasch, M., Schölkopf, B., Smola, A. (2012). A kernel two-sample test. <em>JMLR</em>, 13, 723–773.</li>
+<li>Long, M., Cao, Y., Wang, J., Jordan, M. (2015). Learning transferable features with deep adaptation networks. <em>ICML</em>.</li>
+<li>He, K., Zhang, X., Ren, S., Sun, J. (2016). Deep residual learning for image recognition. <em>CVPR</em>.</li>
+<li>Hu, J., Shen, L., Sun, G. (2018). Squeeze-and-excitation networks. <em>CVPR</em>.</li>
+<li>Cho, K., van Merriënboer, B., Gulcehre, C., et al. (2014). Learning phrase representations using RNN encoder–decoder. <em>EMNLP</em>.</li>
+<li>Vaswani, A., Shazeer, N., Parmar, N., et al. (2017). Attention is all you need. <em>NeurIPS</em>.</li>
+<li>Zhou, H., Zhang, S., Peng, J., et al. (2021). Informer: Beyond efficient transformer for long sequence time-series forecasting. <em>AAAI</em>.</li>
+<li>Gal, Y., Ghahramani, Z. (2016). Dropout as a Bayesian approximation. <em>ICML</em>.</li>
+<li>Nix, D., Weigend, A. (1994). Estimating the mean and variance of the target probability distribution. <em>ICNN</em>.</li>
+<li>Zhao, R., Yan, R., Chen, Z., Mao, K., Wang, P., Gao, R. (2019). Deep learning and its applications to machine health monitoring. <em>MSSP</em>, 115, 213–237.</li>
+</ol>
+
+</div>
+</body>
+</html>

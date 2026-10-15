@@ -1,0 +1,32 @@
+# Python缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 临时文件
+*.tmp
+*.bak
+~*
+*.log.1
+*.log.2
+
+# WorkBuddy内部目录
+.workbuddy/
+
+# 注意: artifacts/不排除,用户要求提交全部实验产物

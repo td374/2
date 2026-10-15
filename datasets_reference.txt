@@ -1,0 +1,24 @@
+# 数据集位置记录
+
+## XJTU-SY 原始数据
+D:/1毕业论文文献，方法/XJTU-SY_Bearing_Datasets/Data/XJTU-SY_Bearing_Datasets.part06/XJTU-SY_Bearing_Datasets
+
+## 预处理后数据
+C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/datasets/
+  - PHM2012/ (IEEE PHM 2012 = PRONOSTIA)
+  - (其他预处理数据在 artifacts/data_*)
+
+## 有效实验结果（不迁移，仅记录位置）
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/matched_fold1/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/matched_fold1_b8/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/matched_fold2/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/matched_fold2_b8/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/matched_fold3/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/matched_fold3_b8/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/matched_fold4/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/matched_fold4_b8/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/matched_fold5/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/matched_fold5_b8/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/s2_chain/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/s4/
+  - C:/Users/28129/Desktop/论文改写整理发表？/xjtu_sy_rul/artifacts/reports/s5/
